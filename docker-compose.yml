@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  deep-learning:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: deep-learning-env:latest
+    container_name: deep-learning-env
+    ports:
+      - "28888:8888"  # Jupyter
+      - "26006:6006"  # MLflow
+      - "20022:22"    # SSH
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/", "||", "curl", "-f", "http://localhost:6006/", "||", "exit", "1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 5s 
