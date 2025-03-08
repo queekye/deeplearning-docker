@@ -20,3 +20,6 @@ scikit-learn>=1.2.0  # 用于t-SNE降维和聚类算法
 pyclustering>=0.10.0  # 提供额外的聚类算法实现
 seaborn>=0.12.0  # 增强的统计数据可视化
 pyyaml>=6.0
+mlflow
+loguru
+gitpython

@@ -1,0 +1,93 @@
+ # 数据目录
+ data/
+ dataset/
+ notebooks/
+ models/
+ mlflow/
+ artifacts/
+ hg_data/
+
+ # 容器生成的日志和数据
+ *.log
+ jupyter.log
+ mlflow.log
+ container_restart.log
+ docker_push_errors.log
+
+ # Python
+ __pycache__/
+ *.py[cod]
+ *$py.class
+ *.so
+ .Python
+ env/
+ build/
+ develop-eggs/
+ dist/
+ downloads/
+ eggs/
+ .eggs/
+ lib/
+ lib64/
+ parts/
+ sdist/
+ var/
+ *.egg-info/
+ .installed.cfg
+ *.egg
+ .ipynb_checkpoints
+
+ # 虚拟环境
+ venv/
+ ENV/
+ env/
+
+ # Docker相关
+ .docker/
+ .docker_push_config
+
+ # 编辑器配置
+ .vscode/
+ .idea/
+ *.swp
+ *.swo
+
+ # 操作系统文件
+ .DS_Store
+ Thumbs.db
+
+ # 敏感信息
+ .env
+ *.pem
+ *.key
+ *.crt
+ *.p12
+ *.pfx
+ *.cer
+ id_rsa*
+ known_hosts
+ authorized_keys
+
+ # 临时文件
+ tmp/
+ temp/
+ .tmp/
+ .temp/
+
+ # 大型二进制文件
+ *.h5
+ *.ckpt
+ *.pt
+ *.pth
+ *.bin
+ *.onnx
+ *.tflite
+ *.pb
+ *.savedmodel
+ *.tar
+ *.gz
+ *.zip
+ *.rar
+
+ # 特定于项目的排除项
+ # 如果有特定于项目的文件需要排除，请在此处添加

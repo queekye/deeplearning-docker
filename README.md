@@ -12,58 +12,66 @@
 ## 目录结构
 
 ```
-dockerfile/
+deeplearning-docker/
 ├── Dockerfile.base    # 基础镜像定义
 ├── Dockerfile         # 应用镜像定义
 ├── start_service.sh   # 服务启动脚本
-├── build.sh           # 构建脚本
 ├── docker-compose.yml # Docker Compose配置
-└── requirements.txt   # Python依赖
+├── requirements.txt   # Python依赖
+└── manage_images.sh   # 镜像管理工具（所有操作都通过此工具进行）
 ```
 
 ## 使用方法
 
-### 方法一：使用构建脚本（推荐）
+本项目提供了一个统一的镜像管理工具`manage_images.sh`，所有操作都通过此工具进行，避免误操作导致容器状态丢失。
+
+### 基本使用流程
 
 ```bash
-# 进入dockerfile目录
-cd dockerfile
-
 # 赋予脚本执行权限
-chmod +x build.sh
+chmod +x manage_images.sh
 
-# 构建镜像（首次构建会同时构建基础镜像）
-./build.sh
+# 查看帮助信息
+./manage_images.sh help
 
-# 如果需要重建基础镜像
-./build.sh --rebuild-base
+# 1. 初始化环境（首次使用）
+./manage_images.sh init
+
+# 2. 启动容器
+./manage_images.sh start
+
+# 3. 保存容器状态并重启（日常使用）
+./manage_images.sh save
+
+# 4. 设置定期自动保存
+./manage_images.sh setup-cron
 ```
 
-### 方法二：使用Docker Compose
+### 所有可用命令
 
-```bash
-# 进入dockerfile目录
-cd dockerfile
+| 命令            | 说明                                       |
+| --------------- | ------------------------------------------ |
+| `init`          | 初始化环境（构建基础镜像和应用镜像）       |
+| `rebuild-base`  | 重建基础镜像                               |
+| `save`          | 保存当前容器状态为新镜像并重启             |
+| `setup-cron`    | 设置定期自动保存                           |
+| `list-backups`  | 列出所有备份镜像                           |
+| `clean-backups` | 清理旧的备份镜像                           |
+| `restore [TAG]` | 恢复到指定的备份镜像                       |
+| `start`         | 启动容器（如果未运行）                     |
+| `stop`          | 停止容器                                   |
+| `restart`       | 重启容器                                   |
+| `logs`          | 查看容器日志                               |
+| `push`          | 将当前镜像推送到Docker Hub或指定的registry |
+| `help`          | 显示帮助信息                               |
 
-# 启动容器
-docker-compose up -d
+### Docker Compose 兼容性
 
-# 查看容器日志
-docker-compose logs -f
-```
+镜像管理工具自动检测并支持两种Docker Compose命令形式：
+- 新版本的 `docker compose`（无连字符）
+- 旧版本的 `docker-compose`（带连字符）
 
-### 方法三：手动构建和运行
-
-```bash
-# 构建基础镜像
-docker build -t deep-learning-base:latest -f Dockerfile.base .
-
-# 构建应用镜像
-docker build -t deep-learning-env:latest .
-
-# 运行容器
-docker run -it -p 28888:8888 -p 26006:6006 -p 20022:22 --gpus all deep-learning-env:latest
-```
+无论您的系统使用哪种命令形式，脚本都能自动适配，无需手动修改。
 
 ## 服务访问
 
@@ -74,6 +82,117 @@ docker run -it -p 28888:8888 -p 26006:6006 -p 20022:22 --gpus all deep-learning-
 - **SSH**: `ssh -p 20022 root@localhost`
 
 > **注意**：上述端口是映射到本机的端口。容器内部使用的端口分别是8888(Jupyter)、6006(MLflow)和22(SSH)。容器内部脚本(如start_service.sh)中显示的地址使用的是容器内部端口。
+
+## 容器状态保存与恢复功能
+
+本项目提供了容器状态保存功能，可以将当前容器的完整状态（包括已安装的软件、配置、历史记录等）保存为新镜像，并在重启时使用该镜像。这对于保存开发环境的完整状态（如Cursor历史、插件配置等）非常有用。
+
+### 使用阶段说明
+
+1. **初始设置阶段**：
+   - 使用`./manage_images.sh init`构建初始环境
+   - 使用`./manage_images.sh start`启动容器
+   - 进行初始配置（安装插件、设置偏好等）
+
+2. **日常使用阶段**：
+   - 使用`./manage_images.sh save`保存状态并重启
+   - 使用`./manage_images.sh setup-cron`设置定期自动保存
+
+> **重要**：一旦进入日常使用阶段（执行过save命令），就不应再使用init命令，否则会覆盖您保存的容器状态。镜像管理工具会在执行可能覆盖容器状态的操作前给出警告。
+
+### 保存容器状态
+
+```bash
+# 保存当前容器状态并重启
+./manage_images.sh save
+```
+
+执行后，脚本会：
+1. 将当前容器状态保存为新的`deep-learning-env:latest`镜像
+2. 将原镜像备份为带时间戳的版本（如`deep-learning-env:backup_20240601_120000`）
+3. 使用新镜像重启容器
+
+### 设置定期自动保存
+
+为了确保您的工作环境定期备份，可以设置定期自动保存：
+
+```bash
+# 设置定期自动保存
+./manage_images.sh setup-cron
+```
+
+按照提示选择执行频率（每天、每周、每月或自定义），脚本会自动设置cron任务。
+
+### 管理备份镜像
+
+随着时间推移，备份镜像可能会占用大量磁盘空间。可以使用镜像管理工具清理旧的备份镜像：
+
+```bash
+# 列出所有备份
+./manage_images.sh list-backups
+
+# 清理旧备份（交互式选择）
+./manage_images.sh clean-backups
+
+# 恢复到指定备份
+./manage_images.sh restore backup_20240601_120000
+```
+
+### 镜像推送功能
+
+本项目提供了将镜像推送到Docker Hub或自定义Registry的功能，方便在不同环境之间共享和部署镜像。
+
+```bash
+# 推送镜像
+./manage_images.sh push
+```
+
+执行后，脚本会引导您完成以下步骤：
+
+1. 如果容器正在运行，询问是否先保存当前容器状态
+2. 选择推送目标（Docker Hub或自定义Registry）
+3. 输入必要的信息（用户名、镜像名称等）
+4. 自动检测是否已登录目标Registry，如未登录则提示登录
+5. 询问是否同时推送基础镜像（deep-learning-base）
+6. 询问是否添加额外的标签（如v1.0、stable等）
+7. 询问是否保存配置用于自动推送
+
+#### 自动推送功能
+
+脚本支持自动推送功能，无需每次手动输入信息和登录。这对于定期备份和推送非常有用。
+
+```bash
+# 首次配置自动推送
+./manage_images.sh push
+# 按提示操作，并在最后选择"是"保存配置
+
+# 之后可以使用自动模式推送
+./manage_images.sh push auto
+```
+
+自动推送配置保存在`~/.docker_push_config`文件中，包含推送目标、用户名、镜像名称等信息。
+
+#### 与定时任务集成
+
+设置定期自动保存时，可以选择在保存后自动推送镜像：
+
+```bash
+# 设置定期自动保存和推送
+./manage_images.sh setup-cron
+# 按提示设置频率，并选择"是"启用自动推送
+```
+
+#### 关于Docker登录凭据
+
+Docker登录凭据（包括访问令牌）保存在`~/.docker/config.json`文件中。一旦登录成功，这些凭据将被保留，无需每次推送时重新登录。
+
+对于自动化场景，您可以：
+
+1. 使用`docker login`命令手动登录一次
+2. 使用访问令牌而非密码登录（在Docker Hub网站上生成）
+3. 对于CI/CD环境，可以使用环境变量设置凭据
+
+> **注意**：推送前请确保您有足够的权限访问目标Registry，并且镜像名称符合目标Registry的命名规范。
 
 ## 开发工作流
 
@@ -86,10 +205,10 @@ docker run -it -p 28888:8888 -p 26006:6006 -p 20022:22 --gpus all deep-learning-
 nano start_service.sh
 
 # 重新构建应用镜像（不需要重建基础镜像）
-docker build -t deep-learning-env:latest .
+./manage_images.sh init
 
 # 重启容器
-docker-compose restart
+./manage_images.sh restart
 ```
 
 ### 添加新的Python依赖
@@ -101,10 +220,10 @@ docker-compose restart
 nano requirements.txt
 
 # 重新构建应用镜像
-docker build -t deep-learning-env:latest .
+./manage_images.sh init
 
 # 重启容器
-docker-compose restart
+./manage_images.sh restart
 ```
 
 > **依赖版本说明**：requirements.txt中的大多数依赖使用了>=版本约束，这允许安装最新的兼容版本。如果您需要确保环境的一致性和可重现性，建议将依赖版本固定为特定版本号（例如，将`torch>=2.0.0`改为`torch==2.0.0`）。
@@ -118,7 +237,7 @@ docker-compose restart
 nano Dockerfile.base
 
 # 重新构建基础镜像
-./build.sh --rebuild-base
+./manage_images.sh rebuild-base
 ```
 
 ## 预装功能
@@ -129,59 +248,13 @@ nano Dockerfile.base
 - SSH服务
 - 常用开发工具（git、vim、tmux等）
 - 中国区镜像源配置（APT、pip、conda）
+- 容器状态保存与恢复功能
+- 定期自动备份功能
+- 统一的镜像生命周期管理工具
 
 > **镜像源说明**：本项目默认配置了清华大学的镜像源，适合中国大陆用户使用。国际用户可以通过修改Dockerfile.base文件中的相关配置，将镜像源改为官方源或其他地区的镜像源。
 
-## 主要特性
-
-- 基于PyTorch 2.6.0，支持CUDA 12.4和cuDNN 9
-- 预装Jupyter Notebook和JupyterLab
-- 配置了清华大学镜像源（APT、pip、conda）
-- 包含常用开发工具（git、vim、tmux等）
-- 集成MLflow用于实验跟踪和模型管理
-
-## 使用方法
-
-### 构建镜像
-
-```bash
-docker build -t deep-learning-env .
-```
-
-### 运行容器
-
-```bash
-docker run -it --gpus all -p 28888:8888 -p 26006:6006 -p 20022:22 deep-learning-env
-```
-
-容器启动后，Jupyter Lab和MLflow服务会自动启动，并显示Jupyter的访问令牌。您可以直接通过以下地址访问服务：
-
-- Jupyter Lab: http://localhost:28888 (需要使用显示的令牌)
-- MLflow: http://localhost:26006
-
-> **注意**：start_service.sh脚本中显示的访问地址使用的是容器内部端口(8888和6006)，而不是映射到主机的端口。请使用上述映射后的端口访问服务。
-
-### 手动启动服务
-
-如果需要手动启动服务，可以使用以下命令：
-
-```bash
-# 启动所有服务（包括MLflow和Jupyter）
-start_service
-
-# 只启动Jupyter
-start_jupyter
-```
-
-### 配置 Git 全局信息，你可以根据实际情况修改
-
-```bash
-git config --global user.name "User Name"
-
-git config --global user.email "Email"
-```
-
-### 使用MLflow
+## 使用MLflow
 
 MLflow服务将在后台运行，可以通过浏览器访问 `http://localhost:26006` 查看实验结果。
 
@@ -215,11 +288,6 @@ mlflow.end_run()
 - Datasets
 - MLflow
 - 以及其他常用机器学习和数据科学库
-
-## 预克隆的仓库
-
-- Flash Attention: https://github.com/Dao-AILab/flash-attention.git
-- LLaMA-Factory: https://github.com/hiyouga/LLaMA-Factory.git
 
 ## 安全注意事项
 
@@ -264,9 +332,10 @@ mkdir -p data notebooks models
 
 ### 端口冲突问题
 
-如果遇到端口冲突，可以修改docker-compose.yml或docker run命令中的端口映射：
+如果遇到端口冲突，可以修改docker-compose.yml中的端口映射：
 
 ```bash
 # 例如，将Jupyter端口从28888改为38888
-docker run -it --gpus all -p 38888:8888 -p 26006:6006 -p 20022:22 deep-learning-env:latest
+# 修改docker-compose.yml后重启容器
+./manage_images.sh restart
 ```

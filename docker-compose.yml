@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   deep-learning:
     build:
@@ -13,9 +11,9 @@ services:
       - "20022:22"    # SSH
     volumes:
       - ../hg_data:/workspace/hg_data
-      - ../modern-train:/workspace/modern_train
-      - ../VTQA-HG:/workspace/VTQA-HG
       - ../dataset:/workspace/dataset
+      - ../code:/workspace/code
+    shm_size: '4gb'  # 增加共享内存大小
     deploy:
       resources:
         reservations:
