@@ -7,8 +7,7 @@ cd /workspace/mlflow
 nohup mlflow server \
     --host 0.0.0.0 \
     --port 6006 \
-    --default-artifact-root file:///workspace/mlflow/artifacts \
-    --backend-store-uri sqlite:///workspace/mlflow/mlflow.db > mlflow.log 2>&1 &
+    --default-artifact-root file:///workspace/mlflow/artifacts > mlflow.log 2>&1 &
 echo -e "${GREEN}MLflow服务已在后台启动，端口6006${NC}"
 
 # 启动Jupyter服务

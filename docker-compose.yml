@@ -11,6 +11,11 @@ services:
       - "28888:8888"  # Jupyter
       - "26006:6006"  # MLflow
       - "20022:22"    # SSH
+    volumes:
+      - ../hg_data:/workspace/hg_data
+      - ../modern-train:/workspace/modern_train
+      - ../VTQA-HG:/workspace/VTQA-HG
+      - ../dataset:/workspace/dataset
     deploy:
       resources:
         reservations:
