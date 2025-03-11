@@ -1,10 +1,10 @@
 services:
-  deep-learning:
+  modern-train-env:
     build:
       context: .
       dockerfile: Dockerfile
-    image: deep-learning-env:latest
-    container_name: deep-learning-env
+    image: modern-train:latest
+    container_name: modern-train
     ports:
       - "28888:8888"  # Jupyter
       - "26006:6006"  # MLflow
@@ -23,7 +23,7 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/", "||", "curl", "-f", "http://localhost:6006/", "||", "exit", "1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8888/ || curl -f http://localhost:6006/ || exit 1"]
       interval: 30s
       timeout: 30s
       retries: 3
