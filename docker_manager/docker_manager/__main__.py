@@ -1,4 +1,4 @@
-"""入口点模块，用于直接运行包"""
+"""Docker项目管理工具入口点"""
 
 from .cli import app
 

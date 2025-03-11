@@ -5,16 +5,15 @@
 
 from .base_manager import BaseManager
 from .project_manager import ProjectManager
-from .environment_manager import EnvironmentManager
 from .container_manager import ContainerManager
-from .backup_manager import BackupManager
 from .image_manager import ImageManager
+from .config_manager import ConfigManager, ConfigError
 
 __all__ = [
     'BaseManager',
     'ProjectManager',
-    'EnvironmentManager',
     'ContainerManager',
-    'BackupManager',
     'ImageManager',
+    'ConfigManager',
+    'ConfigError',
 ] 

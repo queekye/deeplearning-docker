@@ -3,7 +3,7 @@
 import docker
 from typing import Dict, Any, Optional
 
-from ..logger import logger
+from loguru import logger
 
 
 class BaseManager:

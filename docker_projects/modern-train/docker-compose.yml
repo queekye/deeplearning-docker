@@ -1,18 +1,14 @@
 services:
-  modern-train-env:
+  modern-train:
     build:
       context: .
       dockerfile: Dockerfile
     image: modern-train:latest
     container_name: modern-train
     ports:
-      - "28888:8888"  # Jupyter
-      - "26006:6006"  # MLflow
-      - "20022:22"    # SSH
-    volumes:
-      - ../hg_data:/workspace/hg_data
-      - ../dataset:/workspace/dataset
-      - ../code:/workspace/code
+      - "21888:8888"  # Jupyter
+      - "21006:6006"  # MLflow
+      - "21022:22"    # SSH
     shm_size: '4gb'  # 增加共享内存大小
     deploy:
       resources:
