@@ -1,16 +1,15 @@
 # Docker项目和容器管理工具
 
-一个用于管理Docker深度学习环境的Python工具，支持项目、镜像和容器的完整生命周期管理。
+一个通用的Docker环境管理工具，提供完整的项目、镜像和容器生命周期管理，简化Docker环境的配置、使用和维护。
 
-## 功能特点
+## 核心功能
 
-- 简单易用的命令行接口
-- 智能默认值和自动推断
-- 交互式配置
-- 自动化任务调度与管理
-- 集中式常量配置
-- 灵活的错误处理
-- 常用定时方案快速选择
+- **项目管理**：创建、配置和管理Docker项目
+- **镜像管理**：构建、标记、推送和清理Docker镜像
+- **容器管理**：启动、停止、保存和监控容器
+- **定时任务**：自动备份和清理，支持多种定时方案
+- **状态监控**：实时查看项目、镜像和容器状态
+- **资源优化**：智能清理和资源回收
 
 ## 安装
 
@@ -116,6 +115,25 @@ dm logs [-f 持续显示]
 dm cleanup [-d 天数] [-n 保留数量] [--dry-run]
 ```
 
+## 环境配置示例
+
+```yaml
+# docker-compose.yml 示例
+version: '3'
+services:
+  webapp:
+    image: ${IMAGE_NAME:-my-webapp-image}:${TAG:-latest}
+    container_name: ${CONTAINER_NAME:-my-webapp-container}
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+```
+
 ## 配置文件
 
 配置文件位于项目目录下的 `config.json`，可以通过 `dm config` 交互式配置：
@@ -186,44 +204,9 @@ dm cleanup [-d 天数] [-n 保留数量] [--dry-run]
    source ~/.bashrc
    ```
 
-### 自动推送备份镜像
-
-当启用自动推送备份镜像功能时，系统会按以下顺序查找认证信息：
-
-1. 首先检查用户特定的环境变量（如 `DOCKER_PASSWORD_USERNAME`）
-2. 然后检查通用环境变量 `DOCKER_PASSWORD`
-3. 最后检查配置文件中的密码字段
-
-为了安全起见，建议：
-- 在配置文件中保留空的密码字段 `"password": ""`
-- 使用环境变量存储实际密码
-- 对于自动化任务，确保环境变量在任务执行时可用
-
-### 手动登录替代方案
-
-如果不想设置环境变量，也可以使用 Docker CLI 手动登录：
-
-```bash
-docker login -u username
-# 系统会提示输入密码
-```
-
-登录后的凭证会存储在 Docker 的配置文件中，工具会自动使用这些凭证。
-
 ## 定时任务管理
 
-工具提供了强大的定时任务管理功能，支持以下特性：
-
-### 常用定时方案
-
-交互式配置定时任务时，可以选择以下常用定时方案：
-
-- **每天（午夜12点）**：`0 0 * * *`
-- **每天（上午8点）**：`0 8 * * *`
-- **每周（周日午夜）**：`0 0 * * 0`
-- **每月（1号午夜）**：`0 0 1 * *`
-- **每小时（整点）**：`0 * * * *`
-- **自定义**：手动输入Cron表达式
+工具提供了强大的定时任务管理功能
 
 ### 任务类型
 
@@ -236,97 +219,31 @@ docker login -u username
 - **清理任务**：定期清理容器内的缓存文件
   - 可自定义清理路径
 
-### 任务管理
+## 工作流最佳实践
 
-- **列出任务**：`dm schedule list` 查看所有已配置的定时任务
-- **删除任务**：`dm schedule remove` 交互式选择要删除的任务
-- **修改任务**：删除旧任务后重新配置
+1. **项目初始化**
+   - 使用 `dm init` 创建项目结构
+   - 配置适合您项目的Dockerfile和docker-compose.yml
 
-## 智能默认值
+2. **环境配置**
+   - 使用 `dm config` 设置项目参数
+   - 配置资源限制和环境变量
 
-工具使用集中式常量配置管理所有默认值，位于 `constants.py` 文件中：
-
-- **项目名称**：使用目录名
-- **Dockerfile**：自动查找项目目录下的 Dockerfile
-- **Compose文件**：自动查找项目目录下的 docker-compose.yml
-- **镜像名称**：使用项目名称
-- **容器名称**：使用项目名称
-- **注册表URL**：默认为 docker.io
-- **清理路径**：默认为 `/tmp/*` 和 `/var/cache/*`
-
-## 自定义默认值
-
-如果需要修改默认值，可以通过以下方式：
-
-1. **修改常量文件**：编辑 `constants.py` 文件中的相关配置
-2. **环境变量**：使用环境变量覆盖默认配置
-3. **配置文件**：在项目的 `config.json` 中设置自定义值
-
-### 常量配置示例
-
-```python
-# 文件相关
-DEFAULT_FILES = {
-    'dockerfile': 'Dockerfile',
-    'compose_file': 'docker-compose.yml',
-    'config_file': 'config.json'
-}
-
-# 项目默认配置
-DEFAULT_PROJECT_CONFIG = {
-    'project': {
-        'name': None,  # 将使用目录名
-        'directory': None  # 将使用当前目录
-    },
-    'image': {
-        'name': None,  # 将使用项目名
-        'dockerfile': DEFAULT_FILES['dockerfile'],
-        'registry': {
-            'url': 'docker.io',
-            'username': '',
-            'password': ''
-        }
-    },
-    # ... 更多配置 ...
-}
-```
-
-## 必需文件检查
-
-工具会在初始化项目时检查以下必需文件：
-
-- **Dockerfile**：用于构建镜像
-- **docker-compose.yml**：用于管理容器
-
-如果这些文件不存在，工具会提供以下选项：
-
-1. 创建这些文件后再初始化
-2. 使用 `--force` 参数强制初始化
-
-## 最佳实践
-
-1. **项目组织**
-   - 将相关文件放在同一目录下
-   - 使用有意义的项目名称
-   - 保持配置文件的整洁
-
-2. **工作流程**
-   - 使用 `dm init` 创建新项目
-   - 使用 `dm config` 配置项目
-   - 使用 `dm build` 构建镜像
+3. **开发周期**
+   - 使用 `dm build` 构建开发环境
    - 使用 `dm up` 启动容器
-   - 使用 `dm save` 保存状态
+   - 开发和测试
+   - 使用 `dm save` 保存重要状态
 
-3. **自动化**
-   - 使用 `dm schedule` 配置定时备份和清理任务
-   - 选择合适的定时方案或自定义Cron表达式
-   - 使用 `dm schedule list` 定期检查任务状态
-   - 使用环境变量管理敏感信息
+4. **生产部署**
+   - 使用 `dm build -p` 构建并推送生产镜像
+   - 配置自动备份 `dm schedule backup`
+   - 设置资源清理 `dm schedule cleanup`
 
-4. **错误处理**
-   - 使用 `--force` 参数处理特殊情况
-   - 查看错误消息了解详细信息
-   - 使用 `dm status` 检查当前状态
+5. **资源管理**
+   - 定期使用 `dm status` 监控资源使用
+   - 使用 `dm cleanup` 清理不需要的镜像
+   - 使用 `dm logs` 排查问题
 
 ## 常见问题
 
@@ -340,43 +257,33 @@ DEFAULT_PROJECT_CONFIG = {
    - 检查配置文件格式
    - 使用环境变量覆盖敏感配置
 
-3. **定时任务**
-   - 使用 `dm schedule` 交互式配置，选择常用定时方案
-   - 使用 `dm schedule list` 检查任务是否正确配置
-   - 如需修改任务，先使用 `dm schedule remove` 删除旧任务
+3. **镜像构建失败**
+   - 检查Dockerfile语法
+   - 确保基础镜像可用
+   - 查看构建日志 `dm logs`
+
+4. **定时任务不执行**
+   - 检查cron表达式格式
    - 确保系统时间正确
+   - 查看任务列表 `dm schedule list`
 
-4. **缺少必需文件**
-   - 创建必需的 Dockerfile 和 docker-compose.yml
-   - 使用 `-f` 参数强制初始化
-   - 检查文件路径是否正确
-
-5. **构建参数问题**
-   - 使用正确的格式：`--build-arg KEY=VALUE`
-   - 多个参数需要多次使用 `--build-arg`
-   - 检查参数是否被 Dockerfile 正确使用
-
-6. **推送镜像失败**
+5. **推送镜像失败**
    - 使用 `dm config` 配置正确的仓库信息（URL、用户名、密码）
    - 确保已登录到镜像仓库：`dm push -u 用户名 -p 密码`
    - 检查是否有推送权限
    - 对于私有仓库，确保仓库已创建
-   - 如果遇到"access denied"错误，检查认证信息是否正确
-   - 使用 `-f` 参数强制推送，跳过状态检查
 
-## 开发者指南
+## 必需文件检查
 
-### 添加新命令
+工具会在初始化项目时检查以下必需文件：
 
-1. 在 `cli.py` 中使用 `@app.command()` 装饰器添加新命令
-2. 使用 `typer.Option` 和 `typer.Argument` 定义参数
-3. 实现命令逻辑并使用 `logger` 输出结果
+- **Dockerfile**：用于构建镜像
+- **docker-compose.yml**：用于管理容器
 
-### 修改默认值
+如果这些文件不存在，工具会提供以下选项：
 
-1. 编辑 `constants.py` 文件中的相关配置
-2. 确保修改后的值与现有代码兼容
-3. 更新文档以反映新的默认值
+1. 创建这些文件后再初始化
+2. 使用 `--force` 参数强制初始化
 
 ## 许可证
 
