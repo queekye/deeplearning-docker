@@ -20,6 +20,10 @@ cd docker_manager
 pip install -e .
 ```
 
+```
+pip install dockmaster
+```
+
 ## 快速开始
 
 ```bash
